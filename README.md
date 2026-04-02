@@ -18,7 +18,7 @@ Meu foco é simples: transformar ideias em sistemas que **atraem, convertem e es
 ## 🔥 Tech & Marketing Stack
 
 <div align="center">
-  <img src="https://skillicons.dev/icons?i=javascript,typescript,php,html,css,tailwind,nodejs,react,nextjs,mysql,postgresql,git,github,docker,vscode&perline=8" />
+  <img src="https://skillicons.dev/icons?i=javascript,typescript,php,python,java,go,rust,cpp,ruby,swift,html,css,tailwind,nodejs,react,nextjs,mysql,postgresql,mongodb,redis,git,github,docker,aws,linux,vscode&perline=8" />
 </div>
 
 ## 🎯 O que eu entrego
@@ -70,7 +70,7 @@ Se você busca mais do que apenas um site, mas sim uma **máquina de vendas** qu
   <a href="https://wa.me/17992514495" target="_blank">
     <img src="https://img.shields.io/badge/WhatsApp-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" alt="WhatsApp" target="_blank">
   </a>
-  <a href="https://www.instagram.com/isacbuzelli_" target="_blank">
+  <a href="https://www.instagram.com/isacbuzelli" target="_blank">
     <img src="https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white" alt="Instagram" target="_blank">
   </a>
   <a href="mailto:isacbuzelli@gmail.com" target="_blank">
