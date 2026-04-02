@@ -21,17 +21,6 @@ Meu foco é simples: transformar ideias em sistemas que **atraem, convertem e es
   <img src="https://skillicons.dev/icons?i=javascript,typescript,php,html,css,tailwind,nodejs,react,nextjs,mysql,postgresql,git,github,docker,vscode&perline=8" />
 </div>
 
----
-
-## 📊 Estatísticas
-
-<div align="center">
-  <img height="180" src="https://github-readme-stats.vercel.app/api?username=isacbuzelli&show_icons=true&theme=tokyonight&hide_border=true&include_all_commits=true" />
-  <img height="180" src="https://github-readme-stats.vercel.app/api/top-langs/?username=isacbuzelli&layout=compact&theme=tokyonight&hide_border=true&langs_count=8" />
-</div>
-
----
-
 ## 🎯 O que eu entrego
 
 - **🛠️ Sistemas Web completos** (alta performance e escaláveis)
@@ -79,12 +68,12 @@ Se você busca mais do que apenas um site, mas sim uma **máquina de vendas** qu
   <h3>📫 Entre em contato e vamos escalar!</h3>
 
   <a href="https://wa.me/5500000000000" target="_blank">
-    <img src="https://img.shields.io/badge/WhatsApp-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" target="_blank">
+    <img src="https://img.shields.io/badge/WhatsApp-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" alt="WhatsApp" target="_blank">
   </a>
   <a href="mailto:isacbuzelli@gmail.com" target="_blank">
-    <img src="https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white" target="_blank">
+    <img src="https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white" alt="Email" target="_blank">
   </a>
   <a href="https://www.linkedin.com/in/isacbuzelli" target="_blank">
-    <img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" target="_blank">
+    <img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn" target="_blank">
   </a>
 </div>
