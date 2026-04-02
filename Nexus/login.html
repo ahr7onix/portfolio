@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus | Login & Cadastro</title>
+    <link rel="icon" href="./assets/images/logo.png">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="auth-page">
+
+    <div class="auth-container">
+        <div class="auth-box reveal active">
+            
+            <div class="auth-tabs">
+                <button class="tab-btn active" onclick="switchTab('login')">Login</button>
+                <button class="tab-btn" onclick="switchTab('register')">Cadastro</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form active">
+                <h2>Bem-vindo</h2>
+                <p class="auth-subtitle">Acesse sua conta Nexus</p>
+                <input type="email" id="loginEmail" placeholder="Email (admin@nexus.com)" required>
+                <input type="password" id="loginPassword" placeholder="Senha (123456)" required>
+                <button type="submit" class="btn btn-primary ripple">Entrar</button>
+                <p id="loginError" class="error-msg"></p>
+            </form>
+
+            <!-- Register Form -->
+            <form id="registerForm" class="auth-form">
+                <h2>Criar Conta</h2>
+                <p class="auth-subtitle">Comece sua jornada hoje</p>
+                <input type="text" id="regName" placeholder="Nome Completo" required>
+                <input type="email" id="regEmail" placeholder="Email" required>
+                <input type="password" id="regPassword" placeholder="Senha" required>
+                <input type="password" id="regConfirm" placeholder="Confirmar Senha" required>
+                <button type="submit" class="btn btn-primary ripple">Criar Minha Conta</button>
+                <p id="regError" class="error-msg"></p>
+            </form>
+            
+            <a href="index.html" class="back-link">← Voltar para a Landing Page</a>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
