@@ -138,9 +138,9 @@ function limpar(dados) {
   };
 }
 
-async function perguntarGemini(modelo, mensagens, chave) {
+async function perguntarGemini(modelo, mensagens, chave, pensarPouco = true) {
   const controle = new AbortController();
-  const relogio = setTimeout(() => controle.abort(), 8_000);
+  const relogio = setTimeout(() => controle.abort(), 10_000);
   try {
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelo)}:generateContent`, {
       method: "POST",
@@ -154,6 +154,8 @@ async function perguntarGemini(modelo, mensagens, chave) {
           maxOutputTokens: 800,
           responseMimeType: "application/json",
           responseSchema: ESQUEMA,
+          // menos "raciocínio" = resposta bem mais rápida (chat não precisa pensar muito)
+          ...(pensarPouco ? { thinkingConfig: { thinkingLevel: "minimal" } } : {}),
         },
       }),
     });
@@ -203,8 +205,10 @@ export default async function handler(req, res) {
   let ultimoErro = null;
   const inicio = Date.now();
   for (const modelo of MODELOS) {
-    if (Date.now() - inicio > 18_000) break; // não estoura o tempo máximo da função
-    const r = await perguntarGemini(modelo, mensagens, chave);
+    if (Date.now() - inicio > 19_000) break; // não estoura o tempo máximo da função
+    let r = await perguntarGemini(modelo, mensagens, chave);
+    // modelo que não aceita o ajuste de raciocínio: tenta de novo sem ele
+    if (r.erro === 400 && /thinking/i.test(r.detalhe || "")) r = await perguntarGemini(modelo, mensagens, chave, false);
     if (r.dados) return res.status(200).json({ ...limpar(r.dados), modelo });
     ultimoErro = r;
     console.warn(`Gemini ${modelo} falhou (${r.erro}): ${r.detalhe || ""}`);
