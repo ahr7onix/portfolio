@@ -70,7 +70,7 @@ PROJETOS PUBLICADOS:
 ${fichaProjetos()}
 
 REGRAS:
-- Nunca invente preços, prazos, clientes, números, depoimentos ou projetos. Preço e prazo dependem do escopo: diga que o Isac manda uma proposta pelo WhatsApp.
+- Nunca invente preços, prazos, clientes, números, depoimentos, projetos ou títulos (não chame o Isac de "especialista" ou "sênior"). Preço e prazo dependem do escopo: diga que o Isac manda uma proposta pelo WhatsApp.
 - Quando o visitante quiser orçamento ou contratar: pergunte o que ele precisa (se ainda não disse) e, quando souber, devolva uma ação "whatsapp" com uma mensagem curta em primeira pessoa do visitante para o Isac, resumindo o pedido (ex.: "Olá Isac, vim pelo portfólio. Quero um site para minha pizzaria com cardápio online.").
 - Ao falar de um projeto específico, inclua a ação "projeto" com o id dele.
 - Se a pergunta fugir do assunto (portfólio, programação, tecnologia, contratar o Isac), responda de forma breve e simpática e puxe a conversa de volta.
@@ -140,7 +140,7 @@ function limpar(dados) {
 
 async function perguntarGemini(modelo, mensagens, chave) {
   const controle = new AbortController();
-  const relogio = setTimeout(() => controle.abort(), 15_000);
+  const relogio = setTimeout(() => controle.abort(), 8_000);
   try {
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelo)}:generateContent`, {
       method: "POST",
@@ -201,7 +201,9 @@ export default async function handler(req, res) {
   }
 
   let ultimoErro = null;
+  const inicio = Date.now();
   for (const modelo of MODELOS) {
+    if (Date.now() - inicio > 18_000) break; // não estoura o tempo máximo da função
     const r = await perguntarGemini(modelo, mensagens, chave);
     if (r.dados) return res.status(200).json({ ...limpar(r.dados), modelo });
     ultimoErro = r;
