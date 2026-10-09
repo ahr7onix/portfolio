@@ -116,3 +116,36 @@ export function texturaBrilho() {
 }
 
 export const suavizar = (x) => 1 - Math.pow(1 - Math.min(Math.max(x, 0), 1), 3);
+
+// ---------- visual de desenho (modelos cartoon feitos no Blender) ----------
+let tonsToon = null;
+const materiaisToon = new Map();
+
+/**
+ * Troca os materiais por sombreamento toon em 3 tons e põe um contorno escuro em
+ * volta das peças (casca de trás empurrada para fora pela normal).
+ * `contorno(malha)` decide quais peças ganham contorno.
+ */
+export function estiloDesenho(raiz, { espessura = 0.022, cor = "#0b0820", contorno = () => true } = {}) {
+  if (!tonsToon) {
+    tonsToon = new THREE.DataTexture(new Uint8Array([110, 190, 255]), 3, 1, THREE.RedFormat);
+    tonsToon.minFilter = tonsToon.magFilter = THREE.NearestFilter;
+    tonsToon.needsUpdate = true;
+  }
+  const casca = new THREE.MeshBasicMaterial({ color: cor, side: THREE.BackSide });
+  casca.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>\n  transformed += normal * ${espessura.toFixed(4)};`);
+  };
+  const malhas = [];
+  raiz.traverse((o) => { if (o.isMesh) malhas.push(o); });
+  for (const o of malhas) {
+    const m = o.material;
+    if (!materiaisToon.has(m)) {
+      materiaisToon.set(m, new THREE.MeshToonMaterial({
+        name: m.name, color: m.color, emissive: m.emissive, emissiveIntensity: m.emissiveIntensity, gradientMap: tonsToon,
+      }));
+    }
+    o.material = materiaisToon.get(m);
+    if (contorno(o)) o.add(new THREE.Mesh(o.geometry, casca));
+  }
+}

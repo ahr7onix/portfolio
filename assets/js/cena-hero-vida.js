@@ -3,8 +3,10 @@
 //  mouse com os olhos e acena ao ser clicado, painéis de código
 //  flutuando, segundo monitor com código rolando, xícara com
 //  vapor e planta balançando.
+//  O robô é um modelo 3D feito no Blender (assets/models/bit.glb).
 // ============================================================
 import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { texturaBrilho, reduzirMovimento, suavizar } from "./three-util.js";
 
 const brilho = texturaBrilho();
@@ -68,62 +70,46 @@ export function adicionarVida({ raiz, cena, camera, canvas, mouse, pecas }) {
   const atualizacoes = [];
 
   // ======================================================
-  // Robô assistente
+  // Robô assistente (modelo 3D feito no Blender)
   // ======================================================
   const robo = new THREE.Group();
   robo.position.set(-1.8, 2.55, 0.45);
   const corpoRobo = new THREE.Group(); // gira/pula sem mexer na posição base
+  corpoRobo.scale.setScalar(1.35);
+  corpoRobo.visible = false; // aparece quando o modelo termina de carregar
   robo.add(corpoRobo);
 
-  const branco = new THREE.MeshStandardMaterial({ color: "#eef2ff", roughness: 0.25, metalness: 0.1 });
-  const cabeca = new THREE.Mesh(new THREE.SphereGeometry(0.34, 48, 32), branco);
-  const visor = new THREE.Mesh(
-    new THREE.SphereGeometry(0.345, 48, 32, -Math.PI * 0.32, Math.PI * 0.64, Math.PI * 0.3, Math.PI * 0.32),
-    new THREE.MeshStandardMaterial({ color: "#0b0a1f", roughness: 0.15, metalness: 0.6 })
+  // peças do modelo, pelos nomes dados no script do Blender (bit_robo.py)
+  let bit = null;
+  new GLTFLoader().load(
+    new URL("../models/bit.glb", import.meta.url).href,
+    (gltf) => {
+      const modelo = gltf.scene;
+      const achar = (nome) => modelo.getObjectByName(nome);
+      bit = {
+        cabeca: achar("Cabeca"),
+        olhos: achar("Olhos"),
+        olhoMat: achar("Olho_E").material,
+        maoE: achar("Mao_E"),
+        maoD: achar("Mao_D"),
+        bolinha: achar("Bolinha"),
+        chama: achar("Chama"),
+      };
+      corpoRobo.add(modelo);
+      corpoRobo.visible = true;
+    },
+    undefined,
+    (erro) => console.error("Não consegui carregar o Bit:", erro)
   );
-  visor.rotation.y = Math.PI / 2; // virado para a frente (+z)
-  const olhoMat = new THREE.MeshBasicMaterial({ color: "#22d3ee" });
-  const olhoGeo = new THREE.CapsuleGeometry(0.035, 0.07, 4, 12);
-  const olhoE = new THREE.Mesh(olhoGeo, olhoMat);
-  const olhoD = new THREE.Mesh(olhoGeo, olhoMat);
-  const olhos = new THREE.Group();
-  olhos.add(olhoE, olhoD);
-  olhoE.position.x = -0.09;
-  olhoD.position.x = 0.09;
-  olhos.position.set(0, 0.02, 0.33);
-  const antena = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.16), branco);
-  antena.position.y = 0.4;
-  const bolinha = new THREE.Mesh(new THREE.SphereGeometry(0.04, 16, 12), new THREE.MeshBasicMaterial({ color: "#a855f7" }));
-  bolinha.position.y = 0.5;
+
+  // brilhos que ficam em volta do robô (sprites não vêm do Blender)
   const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: brilho, color: "#a855f7", transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
   halo.position.y = 0.5;
   halo.scale.setScalar(0.3);
-  const orelhaE = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.05, 24), new THREE.MeshStandardMaterial({ color: "#a855f7", emissive: "#a855f7", emissiveIntensity: 1.2 }));
-  orelhaE.rotation.z = Math.PI / 2;
-  orelhaE.position.x = -0.34;
-  const orelhaD = orelhaE.clone();
-  orelhaD.position.x = 0.34;
-
-  // mãos flutuantes
-  const maoGeo = new THREE.SphereGeometry(0.075, 20, 14);
-  const maoE = new THREE.Mesh(maoGeo, branco);
-  const maoD = new THREE.Mesh(maoGeo, branco);
-  maoE.position.set(-0.45, -0.32, 0.05);
-  maoD.position.set(0.45, -0.32, 0.05);
-
-  // propulsor
-  const propulsor = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.025, 10, 40), new THREE.MeshBasicMaterial({ color: "#22d3ee" }));
-  propulsor.rotation.x = Math.PI / 2;
-  propulsor.position.y = -0.4;
-  const chama = new THREE.Mesh(
-    new THREE.ConeGeometry(0.14, 0.5, 24, 1, true),
-    new THREE.MeshBasicMaterial({ color: "#22d3ee", transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide })
-  );
-  chama.rotation.x = Math.PI;
-  chama.position.y = -0.68;
   const sombra = new THREE.Sprite(new THREE.SpriteMaterial({ map: brilho, color: "#22d3ee", transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending }));
   sombra.position.y = -0.55;
   sombra.scale.set(0.6, 0.6, 1);
+  corpoRobo.add(halo, sombra);
 
   // balão de fala
   // o texto muda conforme a conversa com o chat (eventos "robo:falar")
@@ -168,9 +154,7 @@ export function adicionarVida({ raiz, cena, camera, canvas, mouse, pecas }) {
   }
   escreverBalao("Olá! 👋");
 
-  corpoRobo.add(cabeca, visor, olhos, antena, bolinha, halo, orelhaE, orelhaD, maoE, maoD, propulsor, chama, sombra);
   robo.add(balao);
-  corpoRobo.scale.setScalar(1.35);
   raiz.add(robo);
   pecas.push({ obj: robo, atraso: 0.9, tipo: "escala" });
 
@@ -198,7 +182,7 @@ export function adicionarVida({ raiz, cena, camera, canvas, mouse, pecas }) {
     const r = canvas.getBoundingClientRect();
     ponteiro.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     raycaster.setFromCamera(ponteiro, camera);
-    canvas.style.cursor = raycaster.intersectObject(cabeca).length ? "pointer" : "";
+    canvas.style.cursor = bit && raycaster.intersectObject(bit.cabeca).length ? "pointer" : "";
   });
   function cutucar() {
     estado.aceno = 1.6;
@@ -230,6 +214,9 @@ export function adicionarVida({ raiz, cena, camera, canvas, mouse, pecas }) {
   }, 11000);
 
   atualizacoes.push((t, dt) => {
+    // enquanto o modelo não carregou, o robô não aparece e não há peças para animar
+    if (!bit) return;
+
     // flutua
     robo.position.y = 2.55 + Math.sin(t * 1.6) * 0.09;
     robo.position.x = -1.8 + Math.sin(t * 0.7) * 0.05;
@@ -247,8 +234,8 @@ export function adicionarVida({ raiz, cena, camera, canvas, mouse, pecas }) {
     corpoRobo.rotation.z = humor === "pensando" ? Math.sin(t * 2) * 0.15 : Math.sin(t * 1.2) * 0.05;
 
     // olhos acompanham
-    alvoOlhar.set(olharX * 0.06, -olharY * 0.04 + 0.02, 0.33);
-    olhos.position.lerp(alvoOlhar, 0.15);
+    alvoOlhar.set(olharX * 0.06, -olharY * 0.04 + 0.02, 0.36);
+    bit.olhos.position.lerp(alvoOlhar, 0.15);
 
     // feliz: dá pulinhos
     if (humor === "feliz") robo.position.y += Math.abs(Math.sin(t * 7)) * 0.08;
@@ -262,7 +249,7 @@ export function adicionarVida({ raiz, cena, camera, canvas, mouse, pecas }) {
     estado.piscando = Math.max(0, estado.piscando - dt);
     // olhos "sorrindo" (apertados) quando está feliz
     const fechado = estado.piscando > 0 ? 0.12 : humor === "feliz" ? 0.45 : 1;
-    olhos.scale.y = THREE.MathUtils.lerp(olhos.scale.y, fechado, 0.5);
+    bit.olhos.scale.y = THREE.MathUtils.lerp(bit.olhos.scale.y, fechado, 0.5);
 
     // pirueta
     if (estado.giro > 0) {
@@ -275,12 +262,12 @@ export function adicionarVida({ raiz, cena, camera, canvas, mouse, pecas }) {
     // acenar com a mão direita
     if (estado.aceno > 0) {
       estado.aceno = Math.max(0, estado.aceno - dt);
-      maoD.position.set(0.5, 0.05 + Math.sin(t * 14) * 0.03, 0.12);
-      maoD.position.x = 0.48 + Math.sin(t * 14) * 0.08;
+      bit.maoD.position.set(0.5, 0.05 + Math.sin(t * 14) * 0.03, 0.12);
+      bit.maoD.position.x = 0.48 + Math.sin(t * 14) * 0.08;
     } else {
-      maoD.position.lerp(tmp.set(0.45, -0.32 + Math.sin(t * 2 + 1) * 0.04, 0.05), 0.1);
+      bit.maoD.position.lerp(tmp.set(0.45, -0.32 + Math.sin(t * 2 + 1) * 0.04, 0.05), 0.1);
     }
-    maoE.position.y = -0.32 + Math.sin(t * 2) * 0.04;
+    bit.maoE.position.y = -0.32 + Math.sin(t * 2) * 0.04;
 
     // balão de fala
     estado.falar = Math.max(0, estado.falar - dt);
@@ -291,12 +278,15 @@ export function adicionarVida({ raiz, cena, camera, canvas, mouse, pecas }) {
     balao.visible = balao.material.opacity > 0.01;
 
     // propulsor e antena (a antena pisca rápido quando está pensando)
-    chama.scale.y = 0.8 + Math.sin(t * 30) * 0.15 + Math.random() * 0.1;
-    chama.material.opacity = 0.25 + Math.random() * 0.12;
+    bit.chama.scale.y = 0.8 + Math.sin(t * 30) * 0.15 + Math.random() * 0.1;
+    bit.chama.material.opacity = 0.25 + Math.random() * 0.12;
     halo.material.opacity = humor === "pensando" ? (Math.sin(t * 20) > 0 ? 1 : 0.2) : 0.6 + Math.sin(t * 4) * 0.4;
-    bolinha.material.color.set(humor === "pensando" ? "#fbbf24" : humor === "ouvindo" ? "#22d3ee" : "#a855f7");
-    halo.material.color.copy(bolinha.material.color);
-    olhoMat.color.setHSL(humor === "feliz" ? 0.85 : 0.52 + Math.sin(t * 0.5) * 0.04, 1, 0.6);
+    const corEstado = humor === "pensando" ? "#fbbf24" : humor === "ouvindo" ? "#22d3ee" : "#a855f7";
+    bit.bolinha.material.color.set(corEstado);
+    bit.bolinha.material.emissive.set(corEstado);
+    halo.material.color.set(corEstado);
+    bit.olhoMat.color.setHSL(humor === "feliz" ? 0.85 : 0.52 + Math.sin(t * 0.5) * 0.04, 1, 0.6);
+    bit.olhoMat.emissive.copy(bit.olhoMat.color);
   });
 
   // ======================================================

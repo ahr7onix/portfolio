@@ -1,7 +1,11 @@
-// Planeta holográfico da seção de contato: núcleo escuro, malha neon,
-// pontos de "conexão" pulsando, anel orbital e uma lua. Arrastar gira.
+// Planeta cartoon da seção de contato (feito no Blender: assets/models/planeta.glb):
+// continentes, montanhas, nuvens que giram sozinhas, arcos de conexão com pulsos,
+// anel orbital com uma lua sonolenta e dois satélites. Arrastar gira.
 import * as THREE from "three";
-import { criarPalco, criarMouse, texturaBrilho, toque, reduzirMovimento } from "./three-util.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { criarPalco, criarMouse, texturaBrilho, toque, reduzirMovimento, estiloDesenho } from "./three-util.js";
+
+const R = 1.55; // raio do planeta no modelo
 
 export function iniciarPlaneta(canvas) {
   const mouse = criarMouse();
@@ -16,44 +20,26 @@ export function iniciarPlaneta(canvas) {
   planeta.rotation.z = 0.35;
   cena.add(planeta);
 
-  cena.add(new THREE.AmbientLight("#6d28d9", 0.8));
-  const luz = new THREE.PointLight("#22d3ee", 40, 20);
-  luz.position.set(4, 3, 5);
-  cena.add(luz);
+  // luz neutra para o toon (céu claro, chão roxo) + chave branca e um toque ciano lateral
+  cena.add(new THREE.HemisphereLight("#ffffff", "#4c3d8f", 1.3));
+  const luz = new THREE.DirectionalLight("#ffffff", 2.4);
+  luz.position.set(4, 4, 6);
+  const luzCiano = new THREE.PointLight("#22d3ee", 12, 20);
+  luzCiano.position.set(-5, -2, 4);
+  cena.add(luz, luzCiano);
 
-  const nucleo = new THREE.Mesh(
-    new THREE.SphereGeometry(1.55, 48, 32),
-    new THREE.MeshStandardMaterial({ color: "#120c2e", roughness: 0.6, metalness: 0.3, emissive: "#2e1065", emissiveIntensity: 0.6 })
-  );
-  const malha = new THREE.Mesh(
-    new THREE.IcosahedronGeometry(1.6, 3),
-    new THREE.MeshBasicMaterial({ color: "#a855f7", wireframe: true, transparent: true, opacity: 0.35 })
-  );
   const atmosfera = new THREE.Mesh(
-    new THREE.SphereGeometry(1.85, 48, 32),
-    new THREE.MeshBasicMaterial({ color: "#22d3ee", transparent: true, opacity: 0.06, side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false })
+    new THREE.SphereGeometry(2.05, 48, 32),
+    new THREE.MeshBasicMaterial({ color: "#22d3ee", transparent: true, opacity: 0.07, side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false })
   );
 
-  // pontos espalhados na superfície (cidades / conexões)
-  const n = 160;
-  const pos = new Float32Array(n * 3);
-  for (let i = 0; i < n; i++) {
-    const v = new THREE.Vector3().randomDirection().multiplyScalar(1.62);
-    pos.set([v.x, v.y, v.z], i * 3);
-  }
-  const pontosGeo = new THREE.BufferGeometry();
-  pontosGeo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-  const pontos = new THREE.Points(pontosGeo, new THREE.PointsMaterial({
-    size: 0.12, map: texturaBrilho(), color: "#67e8f9", transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-  }));
-
-  // arcos ligando pontos aleatórios
+  // arcos ligando pontos aleatórios, acima dos continentes
   const arcos = new THREE.Group();
   const curvas = [];
   for (let i = 0; i < 9; i++) {
-    const a = new THREE.Vector3().randomDirection().multiplyScalar(1.62);
-    const b = new THREE.Vector3().randomDirection().multiplyScalar(1.62);
-    const meio = a.clone().add(b).normalize().multiplyScalar(2.3);
+    const a = new THREE.Vector3().randomDirection().multiplyScalar(R + 0.15);
+    const b = new THREE.Vector3().randomDirection().multiplyScalar(R + 0.15);
+    const meio = a.clone().add(b).normalize().multiplyScalar(2.5);
     const curva = new THREE.QuadraticBezierCurve3(a, meio, b);
     curvas.push(curva);
     const linha = new THREE.Line(
@@ -62,7 +48,8 @@ export function iniciarPlaneta(canvas) {
     );
     arcos.add(linha);
   }
-  planeta.add(nucleo, malha, atmosfera, pontos, arcos);
+  const nuvens = new THREE.Group(); // recebe as nuvens do modelo; gira um pouco mais rápido
+  planeta.add(atmosfera, arcos, nuvens);
 
   const anel = new THREE.Mesh(
     new THREE.RingGeometry(2.3, 2.34, 128),
@@ -76,10 +63,7 @@ export function iniciarPlaneta(canvas) {
   orbita.rotation.x = Math.PI / 2.35;
   orbita.rotation.y = 0.25;
   orbita.add(anel, anel2);
-  const lua = new THREE.Mesh(
-    new THREE.SphereGeometry(0.13, 24, 16),
-    new THREE.MeshStandardMaterial({ color: "#22d3ee", emissive: "#22d3ee", emissiveIntensity: 1.5 })
-  );
+  const lua = new THREE.Group(); // recebe a lua do modelo
   orbita.add(lua);
   cena.add(orbita);
 
@@ -93,20 +77,46 @@ export function iniciarPlaneta(canvas) {
   planeta.add(pulsos);
   const tmpPonto = new THREE.Vector3();
 
-  // satélites em órbitas inclinadas
+  // satélites em órbitas inclinadas (o corpo chega do modelo; a luz piscando fica aqui)
   const satelites = [0, 1].map((i) => {
     const orbitaSat = new THREE.Group();
     orbitaSat.rotation.set(i ? 1.1 : -0.5, 0, i ? 0.4 : -0.9);
     const sat = new THREE.Group();
-    const corpoSat = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.18), new THREE.MeshStandardMaterial({ color: "#e5e7eb", metalness: 0.6, roughness: 0.3 }));
-    const painel = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.01, 0.12), new THREE.MeshStandardMaterial({ color: "#1d4ed8", emissive: "#2563eb", emissiveIntensity: 0.6, metalness: 0.4, roughness: 0.3 }));
-    const luzSat = new THREE.Sprite(new THREE.SpriteMaterial({ map: texturaBrilho(), color: i ? "#f0abfc" : "#67e8f9", transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
-    luzSat.scale.setScalar(0.25);
-    sat.add(corpoSat, painel, luzSat);
+    sat.scale.setScalar(0.7);
+    const luzSat = new THREE.Sprite(new THREE.SpriteMaterial({ map: texturaBrilho(), color: i ? "#f0abfc" : "#ff8787", transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    luzSat.position.y = 0.24; // ponta da antena
+    luzSat.scale.setScalar(0.3);
+    sat.add(luzSat);
     orbitaSat.add(sat);
     cena.add(orbitaSat);
-    return { sat, luzSat, raio: i ? 2.05 : 2.75, vel: i ? 0.9 : 0.5, fase: i * 2 };
+    return { sat, luzSat, modelo: i ? "Satelite_B" : "Satelite_A", raio: i ? 2.05 : 2.75, vel: i ? 0.9 : 0.5, fase: i * 2 };
   });
+
+  // ---------- modelo do Blender ----------
+  new GLTFLoader().load(
+    new URL("../models/planeta.glb", import.meta.url).href,
+    (gltf) => {
+      const achar = (nome) => gltf.scene.getObjectByName(nome);
+      // gotas da superfície se sobrepõem; contorno nelas viraria emenda escura
+      const semEmenda = (o) => !/^(Terra|Areia|Calota)_/.test(o.name);
+      const corpo = achar("Planeta");
+      estiloDesenho(corpo, { espessura: 0.02, contorno: semEmenda });
+      planeta.add(corpo);
+      const ceu = achar("Nuvens");
+      estiloDesenho(ceu, { espessura: 0.03 });
+      nuvens.add(ceu);
+      const luaModelo = achar("Lua");
+      estiloDesenho(luaModelo, { espessura: 0.012 });
+      lua.add(luaModelo);
+      for (const s of satelites) {
+        const m = achar(s.modelo);
+        estiloDesenho(m, { espessura: 0.012 });
+        s.sat.add(m);
+      }
+    },
+    undefined,
+    (erro) => console.error("Não consegui carregar o planeta:", erro)
+  );
 
   // arrastar para girar (desktop)
   if (!toque && !reduzirMovimento) {
@@ -132,10 +142,11 @@ export function iniciarPlaneta(canvas) {
     giro.x *= 0.98;
     planeta.rotation.y = giro.y;
     planeta.rotation.x = giro.x + mouse.y * 0.1;
-    pontos.material.size = 0.1 + Math.sin(t * 3) * 0.03;
+    nuvens.rotation.y += dt * 0.08;
     arcos.children.forEach((l, i) => { l.material.opacity = 0.25 + Math.max(0, Math.sin(t * 1.5 + i)) * 0.5; });
     const ang = t * 0.6;
     lua.position.set(Math.cos(ang) * 2.32, Math.sin(ang) * 2.32, 0);
+    lua.lookAt(camera.position); // o rostinho sempre virado para quem está vendo
     orbita.rotation.z = mouse.x * 0.15;
     anel2.rotation.z -= dt * 0.1;
 

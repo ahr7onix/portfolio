@@ -1,63 +1,46 @@
-// Tecnologias como esferas 3D flutuantes, todas num único canvas.
-// Passar o mouse faz a esfera girar e crescer. A lista acessível fica no HTML.
+// Tecnologias como logos 3D flutuantes (feitos no Blender: assets/models/tecnologias.glb),
+// todos num único canvas, com o nome em cima de cada um.
+// Passar o mouse faz o logo girar e crescer. A lista acessível fica no HTML.
 import * as THREE from "three";
-import { criarPalco, criarMouse, texturaBrilho, toque, reduzirMovimento } from "./three-util.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { criarPalco, criarMouse, texturaBrilho, toque, reduzirMovimento, estiloDesenho } from "./three-util.js";
 
+// "logo" é o nome do grupo no .glb (gerado pelo script tecnologias.py)
 const TECNOLOGIAS = [
-  { nome: "React", cor: "#61dafb" },
-  { nome: "Next.js", cor: "#e5e7eb" },
-  { nome: "React Native", cor: "#22d3ee" },
-  { nome: "Three.js", cor: "#c4b5fd" },
-  { nome: "Node.js", cor: "#4ade80" },
-  { nome: "NestJS", cor: "#f43f5e" },
-  { nome: "TypeScript", cor: "#60a5fa" },
-  { nome: "PostgreSQL", cor: "#7dd3fc" },
-  { nome: "Prisma", cor: "#a5b4fc" },
-  { nome: "Python", cor: "#facc15" },
-  { nome: "Docker", cor: "#38bdf8" },
-  { nome: "Git", cor: "#fb923c" },
+  { nome: "React", cor: "#61dafb", logo: "Logo_React" },
+  { nome: "Next.js", cor: "#e5e7eb", logo: "Logo_NextJS" },
+  { nome: "React Native", cor: "#22d3ee", logo: "Logo_ReactNative" },
+  { nome: "Three.js", cor: "#c4b5fd", logo: "Logo_ThreeJS" },
+  { nome: "Node.js", cor: "#4ade80", logo: "Logo_NodeJS" },
+  { nome: "NestJS", cor: "#f43f5e", logo: "Logo_NestJS" },
+  { nome: "TypeScript", cor: "#60a5fa", logo: "Logo_TypeScript" },
+  { nome: "PostgreSQL", cor: "#7dd3fc", logo: "Logo_PostgreSQL" },
+  { nome: "Prisma", cor: "#a5b4fc", logo: "Logo_Prisma" },
+  { nome: "Python", cor: "#facc15", logo: "Logo_Python" },
+  { nome: "Docker", cor: "#38bdf8", logo: "Logo_Docker" },
+  { nome: "Git", cor: "#fb923c", logo: "Logo_Git" },
 ];
 
-// Textura 2:1 com o nome no ponto da esfera que fica de frente para a câmera (u = 0.25)
-function texturaNome(nome, cor) {
+// etiqueta com o nome que fica em cima do logo (sprite, sempre de frente para a câmera)
+const ROTULO = { w: 3.1, h: 0.62 };
+function rotulo(nome, cor) {
   const c = document.createElement("canvas");
-  c.width = 1024;
-  c.height = 512;
+  c.width = 640;
+  c.height = 128;
   const g = c.getContext("2d");
-  const fundo = g.createLinearGradient(0, 0, 0, 512);
-  fundo.addColorStop(0, "#1d1640");
-  fundo.addColorStop(1, "#0b0920");
-  g.fillStyle = fundo;
-  g.fillRect(0, 0, 1024, 512);
-  // grade sutil
-  g.strokeStyle = "rgba(168,85,247,.25)";
-  g.lineWidth = 2;
-  for (let x = 0; x <= 1024; x += 64) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, 512); g.stroke(); }
-  for (let y = 0; y <= 512; y += 64) { g.beginPath(); g.moveTo(0, y); g.lineTo(1024, y); g.stroke(); }
-  // nome
-  let tam = 70;
-  g.font = `700 ${tam}px "Space Grotesk", sans-serif`;
-  while (g.measureText(nome).width > 190 && tam > 30) {
-    tam -= 4;
-    g.font = `700 ${tam}px "Space Grotesk", sans-serif`;
-  }
+  g.font = `700 64px "Space Grotesk", sans-serif`;
   g.textAlign = "center";
   g.textBaseline = "middle";
   g.shadowColor = cor;
-  g.shadowBlur = 24;
+  g.shadowBlur = 22;
   g.fillStyle = cor;
-  // nomes compostos ficam em duas linhas, maiores
-  const linhas = nome.includes(" ") && tam < 56 ? nome.split(" ") : [nome];
-  if (linhas.length > 1) {
-    tam = 56;
-    g.font = `700 ${tam}px "Space Grotesk", sans-serif`;
-  }
-  for (const cx of [256, 768]) { // frente e verso, para quando a esfera gira
-    linhas.forEach((l, i) => g.fillText(l, cx, 256 + (i - (linhas.length - 1) / 2) * tam * 1.05));
-  }
+  g.fillText(nome, c.width / 2, c.height / 2);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
-  return t;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false }));
+  s.scale.set(ROTULO.w, ROTULO.h, 1);
+  s.position.y = 1.28;
+  return s;
 }
 
 export function iniciarTecnologias(canvas) {
@@ -71,33 +54,56 @@ export function iniciarTecnologias(canvas) {
   const { cena, camera } = palco;
   camera.position.set(0, 0, 14);
   cena.add(grupo);
-  cena.add(new THREE.AmbientLight("#8b7cf6", 1.1));
-  const luz = new THREE.DirectionalLight("#ffffff", 2.2);
-  luz.position.set(2, 3, 6);
-  const luz2 = new THREE.PointLight("#22d3ee", 30, 30);
-  luz2.position.set(-6, -2, 6);
-  cena.add(luz, luz2);
+  // luz neutra para as cores das marcas aparecerem certas no sombreamento toon:
+  // céu claro + chão roxo suave, luz principal branca de frente/cima e um recorte por trás
+  cena.add(new THREE.HemisphereLight("#ffffff", "#4c3d8f", 1.4));
+  const luz = new THREE.DirectionalLight("#ffffff", 2.6);
+  luz.position.set(3, 6, 10);
+  const recorte = new THREE.DirectionalLight("#a5b4fc", 1.2);
+  recorte.position.set(-4, 3, -6);
+  cena.add(luz, recorte);
 
-  const geo = new THREE.SphereGeometry(1, 48, 32);
+  // esfera invisível só para detectar o mouse (o logo tem buracos, como o do Three.js)
+  const geoAlvo = new THREE.SphereGeometry(1, 16, 12);
+  const matAlvo = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
   TECNOLOGIAS.forEach((tec, i) => {
-    const mat = new THREE.MeshStandardMaterial({
-      map: texturaNome(tec.nome, tec.cor),
-      roughness: 0.35,
-      metalness: 0.25,
-      emissive: new THREE.Color(tec.cor),
-      emissiveIntensity: 0.08,
-    });
-    const bola = new THREE.Mesh(geo, mat);
+    const bola = new THREE.Group(); // recebe o logo quando o .glb carregar
+    const alvoMouse = new THREE.Mesh(geoAlvo, matAlvo);
     const aura = new THREE.Mesh(
-      new THREE.RingGeometry(1.12, 1.16, 64),
+      new THREE.RingGeometry(1.04, 1.07, 64),
       new THREE.MeshBasicMaterial({ color: tec.cor, transparent: true, opacity: 0.35, side: THREE.DoubleSide })
     );
+    aura.position.z = -0.4;
     const item = new THREE.Group();
-    item.add(bola, aura);
-    item.userData = { bola, aura, fase: i * 0.7, giro: 0, hover: 0 };
+    item.add(bola, alvoMouse, aura, rotulo(tec.nome, tec.cor));
+    item.userData = { bola, alvoMouse, aura, fase: i * 0.7, giro: 0, hover: 0 };
     grupo.add(item);
     bolas.push(item);
   });
+
+  new GLTFLoader().load(
+    new URL("../models/tecnologias.glb", import.meta.url).href,
+    (gltf) => {
+      gltf.scene.updateMatrixWorld(true);
+      TECNOLOGIAS.forEach((tec, i) => {
+        const logo = gltf.scene.getObjectByName(tec.logo);
+        if (!logo) return;
+        // centraliza pelo tamanho real do modelo (cauda da baleia, tromba do elefante etc.
+        // tiravam o logo do meio) e deixa todos do mesmo tamanho dentro do anel
+        const medida = new THREE.Box3().setFromObject(logo, true);
+        const centro = medida.getCenter(new THREE.Vector3());
+        const tam = medida.getSize(new THREE.Vector3());
+        logo.position.sub(centro);
+        const pivo = new THREE.Group();
+        pivo.scale.setScalar(1.6 / Math.max(tam.x, tam.y));
+        pivo.add(logo);
+        estiloDesenho(logo);
+        bolas[i].userData.bola.add(pivo);
+      });
+    },
+    undefined,
+    (erro) => console.error("Não consegui carregar os logos:", erro)
+  );
 
   // ---------- rede: linhas entre esferas vizinhas com pulsos de luz ----------
   let pares = [];
@@ -187,7 +193,7 @@ export function iniciarTecnologias(canvas) {
     const mouseAtivo = !reduzirMovimento && ponteiro.x < 2;
     if (mouseAtivo) {
       raycaster.setFromCamera(ponteiro, camera);
-      const hit = raycaster.intersectObjects(bolas.map((b) => b.userData.bola))[0];
+      const hit = raycaster.intersectObjects(bolas.map((b) => b.userData.alvoMouse))[0];
       alvo = hit && hit.object.parent;
       raycaster.ray.intersectPlane(plano, mouse3d);
     }
@@ -222,8 +228,7 @@ export function iniciarTecnologias(canvas) {
       u.aura.rotation.z += dt * 0.4;
       u.aura.scale.setScalar(1 + u.hover * 0.12 + Math.sin(t * 2 + u.fase) * 0.02);
       u.aura.material.opacity = 0.25 + u.hover * 0.6;
-      u.bola.material.emissiveIntensity = 0.08 + u.hover * 0.3;
-      // a esfera volta a mostrar o nome de frente depois do giro
+      // o logo volta a ficar de frente depois do giro
       if (u.hover < 0.05) u.giro += (Math.round(u.giro / (Math.PI * 2)) * Math.PI * 2 - u.giro) * 0.08;
     }
 

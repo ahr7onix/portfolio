@@ -1,12 +1,14 @@
 // ============================================================
 //  Estação de trabalho neon em 3D (topo da página)
-//  Tudo gerado por código: mesa, monitor, teclado, gabinete
-//  com LEDs. A tela do monitor exibe as capturas reais dos
-//  projetos publicados, trocando de tempos em tempos.
+//  Mesa, monitor, teclado e gabinete vêm de um modelo feito no
+//  Blender (assets/models/mesa-pc.glb). As teclas RGB, a tela
+//  com as capturas reais dos projetos, os LEDs pulsando e as
+//  ventoinhas girando são animados aqui.
 // ============================================================
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { criarPalco, criarMouse, texturaBrilho, reduzirMovimento, toque, celular, suavizar } from "./three-util.js";
 import { adicionarVida } from "./cena-hero-vida.js";
 
@@ -42,12 +44,9 @@ export function iniciarHero(canvas, imagens = []) {
   luzCiano.position.set(2.6, 1.2, 1.6);
   cena.add(luzRoxa, luzCiano);
 
-  // ---------- materiais ----------
-  const metalEscuro = new THREE.MeshStandardMaterial({ color: "#151229", roughness: 0.45, metalness: 0.6 });
-  const metalMedio = new THREE.MeshStandardMaterial({ color: "#232042", roughness: 0.35, metalness: 0.7 });
-  const neon = (cor, forca = 2.2) => new THREE.MeshStandardMaterial({ color: cor, emissive: cor, emissiveIntensity: forca, roughness: 0.4 });
-  const neonCiano = neon("#22d3ee");
-  const neonRoxo = neon("#a855f7");
+  // LEDs do modelo (materiais "LED roxo" e "LED ciano"), preenchidos quando o .glb carregar
+  let neonRoxo = null;
+  let neonCiano = null;
 
   // ---------- chão: disco com anéis neon ----------
   const chao = new THREE.Group();
@@ -65,31 +64,17 @@ export function iniciarHero(canvas, imagens = []) {
   raiz.add(chao);
   pecas.push({ obj: chao, atraso: 0, tipo: "escala" });
 
-  // ---------- mesa ----------
+  // ---------- grupos da estação (as peças chegam do .glb) ----------
+  // os grupos ficam nas mesmas posições dos vazios "Mesa", "Monitor",
+  // "Teclado" e "PC" do modelo, então as peças entram sem ajuste
   const mesa = new THREE.Group();
-  const tampo = new THREE.Mesh(caixa(4.2, 0.12, 1.9, 0.04), metalMedio);
-  tampo.position.y = 1.15;
-  const fitaMesa = new THREE.Mesh(caixa(4.22, 0.025, 0.02, 0.01), neonCiano);
-  fitaMesa.position.set(0, 1.13, 0.955);
-  mesa.add(tampo, fitaMesa);
-  for (const x of [-1.95, 1.95]) {
-    const perna = new THREE.Mesh(caixa(0.1, 1.1, 1.6, 0.03), metalEscuro);
-    perna.position.set(x, 0.55, 0);
-    mesa.add(perna);
-  }
   raiz.add(mesa);
   pecas.push({ obj: mesa, atraso: 0.15 });
 
-  // ---------- monitor com tela dinâmica ----------
   const monitor = new THREE.Group();
   monitor.position.set(-0.15, 1.21, -0.45);
-  const base = new THREE.Mesh(caixa(0.7, 0.05, 0.4, 0.02), metalEscuro);
-  const haste = new THREE.Mesh(caixa(0.1, 0.62, 0.08, 0.02), metalEscuro);
-  haste.position.set(0, 0.33, -0.05);
-  const moldura = new THREE.Mesh(caixa(2.7, 1.6, 0.09, 0.05), metalEscuro);
-  moldura.position.set(0, 1.28, 0);
-  const brilhoMoldura = new THREE.Mesh(caixa(2.76, 1.66, 0.04, 0.05), neonRoxo);
-  brilhoMoldura.position.set(0, 1.28, -0.04);
+  raiz.add(monitor);
+  pecas.push({ obj: monitor, atraso: 0.35 });
 
   // canvas que vira a textura da tela
   const telaCanvas = document.createElement("canvas");
@@ -99,11 +84,7 @@ export function iniciarHero(canvas, imagens = []) {
   const telaTextura = new THREE.CanvasTexture(telaCanvas);
   telaTextura.colorSpace = THREE.SRGBColorSpace;
   telaTextura.anisotropy = renderer.capabilities.getMaxAnisotropy();
-  const tela = new THREE.Mesh(new THREE.PlaneGeometry(2.56, 1.47), new THREE.MeshBasicMaterial({ map: telaTextura, toneMapped: false }));
-  tela.position.set(0, 1.28, 0.047);
-  monitor.add(base, haste, brilhoMoldura, moldura, tela);
-  raiz.add(monitor);
-  pecas.push({ obj: monitor, atraso: 0.35 });
+  telaTextura.flipY = false; // o UV do glTF já vem com o v invertido
 
   // carrega as capturas e alterna entre elas
   const fotos = [];
@@ -168,8 +149,6 @@ export function iniciarHero(canvas, imagens = []) {
   const teclado = new THREE.Group();
   teclado.position.set(-0.2, 1.24, 0.42);
   teclado.rotation.x = 0.06;
-  const baseTeclado = new THREE.Mesh(caixa(1.9, 0.06, 0.62, 0.02), metalEscuro);
-  teclado.add(baseTeclado);
   const colunas = 15, linhas = 4;
   const teclaGeo = caixa(0.105, 0.04, 0.105, 0.015);
   const teclaMat = new THREE.MeshBasicMaterial({ toneMapped: false });
@@ -186,44 +165,45 @@ export function iniciarHero(canvas, imagens = []) {
     }
   }
   teclado.add(teclas);
-  const mouseMesa = new THREE.Mesh(caixa(0.16, 0.06, 0.26, 0.05), metalEscuro);
-  mouseMesa.position.set(1.15, 0.0, 0.05);
-  const ledMouse = new THREE.Mesh(caixa(0.02, 0.012, 0.12, 0.005), neonCiano);
-  ledMouse.position.set(1.15, 0.035, 0.0);
-  teclado.add(mouseMesa, ledMouse);
   raiz.add(teclado);
   pecas.push({ obj: teclado, atraso: 0.55 });
 
-  // ---------- gabinete com vidro, ventoinhas e LEDs ----------
   const pc = new THREE.Group();
   pc.position.set(1.62, 1.21, -0.35);
-  const corpo = new THREE.Mesh(caixa(0.62, 1.25, 1.05, 0.04), metalEscuro);
-  corpo.position.y = 0.625;
-  const vidro = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.98, 1.15),
-    new THREE.MeshPhysicalMaterial({ color: "#8b5cf6", transparent: true, opacity: 0.18, roughness: 0.05, metalness: 0.1 })
-  );
-  vidro.rotation.y = Math.PI / 2;
-  vidro.position.set(0.315, 0.625, 0);
-  const fitaPc = new THREE.Mesh(caixa(0.02, 1.18, 0.02, 0.008), neonRoxo);
-  fitaPc.position.set(0.3, 0.625, 0.5);
-  const fitaPc2 = fitaPc.clone();
-  fitaPc2.position.z = -0.5;
-  pc.add(corpo, vidro, fitaPc, fitaPc2);
-  const ventoinhas = [];
-  for (const y of [0.32, 0.92]) {
-    const v = new THREE.Group();
-    v.position.set(0.2, y, 0);
-    v.rotation.y = Math.PI / 2;
-    const aro = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.025, 10, 40), neonCiano.clone());
-    const pas = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.02, 6, 1), new THREE.MeshStandardMaterial({ color: "#3b3570", metalness: 0.5, roughness: 0.4, flatShading: true }));
-    pas.rotation.x = Math.PI / 2;
-    v.add(aro, pas);
-    pc.add(v);
-    ventoinhas.push({ v: pas, aro });
-  }
   raiz.add(pc);
   pecas.push({ obj: pc, atraso: 0.45 });
+
+  // ---------- modelo do Blender: distribui as peças nos grupos ----------
+  const ventoinhas = [];
+  new GLTFLoader().load(
+    new URL("../models/mesa-pc.glb", import.meta.url).href,
+    (gltf) => {
+      const modelo = gltf.scene;
+      const destinos = { Mesa: mesa, Monitor: monitor, Teclado: teclado, PC: pc };
+      for (const [nome, destino] of Object.entries(destinos)) {
+        const origem = modelo.getObjectByName(nome);
+        if (origem) [...origem.children].forEach((filho) => destino.add(filho));
+      }
+
+      monitor.getObjectByName("Tela").material = new THREE.MeshBasicMaterial({ map: telaTextura, toneMapped: false });
+
+      for (const grupo of Object.values(destinos)) {
+        grupo.traverse((o) => {
+          if (o.material?.name === "LED roxo") neonRoxo = o.material;
+          if (o.material?.name === "LED ciano") neonCiano = o.material;
+        });
+      }
+
+      // cada aro ganha o próprio material para mudar de cor sozinho
+      for (let i = 0; pc.getObjectByName(`Ventoinha_${i}`); i++) {
+        const aro = pc.getObjectByName(`Aro_Ventoinha_${i}`);
+        aro.material = aro.material.clone();
+        ventoinhas.push({ v: pc.getObjectByName(`Ventoinha_${i}`), aro });
+      }
+    },
+    undefined,
+    (erro) => console.error("Não consegui carregar a mesa:", erro)
+  );
 
 
   // ---------- partículas subindo ----------
@@ -309,8 +289,8 @@ export function iniciarHero(canvas, imagens = []) {
 
     // LEDs pulsando e ventoinhas
     const pulso = 0.5 + Math.sin(t * 2) * 0.5;
-    neonRoxo.emissiveIntensity = 1.6 + pulso * 1.4;
-    neonCiano.emissiveIntensity = 1.8 + (1 - pulso) * 1.2;
+    if (neonRoxo) neonRoxo.emissiveIntensity = 1.6 + pulso * 1.4;
+    if (neonCiano) neonCiano.emissiveIntensity = 1.8 + (1 - pulso) * 1.2;
     ventoinhas.forEach(({ v, aro }, i) => {
       v.rotation.y += dt * (9 + i * 2);
       aro.material.emissive.setHSL(0.52 + Math.sin(t * 0.6 + i) * 0.13, 1, 0.55);

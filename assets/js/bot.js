@@ -112,7 +112,7 @@
 
     if (tem(t, "quem e voce", "quem e vc", "seu nome", "bit", "robo", "voce e um", "vc e um")) {
       return {
-        texto: "Eu sou o <b>Bit</b> 🤖, um robozinho 3D feito pelo Isac com Three.js. Fui montado peça por peça em código, sem nenhum modelo baixado. Clica em mim lá em cima que eu dou uma pirueta!",
+        texto: "Eu sou o <b>Bit</b> 🤖, um robozinho 3D modelado no Blender pelo Isac e carregado com Three.js. Clica em mim lá em cima que eu dou uma pirueta!",
         sugestoes: ["Como esse site foi feito?", "Quais projetos o Isac fez?"],
         balao: "Prazer, Bit! 🤖",
         estado: "feliz",
