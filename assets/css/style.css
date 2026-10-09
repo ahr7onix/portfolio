@@ -146,7 +146,7 @@ p { margin: 0; }
 .contato-texto { color: var(--suave); margin-top: 12px; }
 .contato-links { display: grid; gap: 10px; }
 
-.rodape { display: flex; justify-content: space-between; gap: 16px; padding: 32px 0 48px; color: var(--suave); font-size: .9rem; }
+.rodape { display: flex; justify-content: flex-end; gap: 16px; padding: 32px 0 48px; color: var(--suave); font-size: .9rem; }
 .rodape a { text-decoration: none; }
 
 /* ---------- detalhe (modal) ---------- */

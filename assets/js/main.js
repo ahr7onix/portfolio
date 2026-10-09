@@ -105,7 +105,6 @@
   });
 
   renderizar("todos");
-  document.getElementById("ano").textContent = new Date().getFullYear();
 
   // Link direto para um projeto: index.html#nutricare
   const alvo = location.hash.slice(1);
