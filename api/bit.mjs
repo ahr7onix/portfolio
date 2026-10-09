@@ -1,6 +1,6 @@
 // ============================================================
 //  /api/bit  -  cérebro do Bit com o Google Gemini
-//  A chave fica só aqui no servidor (variável de ambiente
+//  A chave fica só aqui no servidor (variável de ambiente "aaa" ou
 //  GEMINI_API_KEY na Vercel) e nunca vai para o navegador.
 //  Se não houver chave, se a cota grátis acabar ou se o Gemini
 //  falhar, responde com erro e o site volta para o Bit por regras.
@@ -181,7 +181,8 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ erro: "use POST" });
   if (origem && !ORIGENS.includes(origem)) return res.status(403).json({ erro: "origem não permitida" });
 
-  const chave = process.env.GEMINI_API_KEY;
+  // nome da variável na Vercel: "aaa" (GEMINI_API_KEY também funciona)
+  const chave = process.env.aaa || process.env.GEMINI_API_KEY;
   if (!chave) return res.status(503).json({ erro: "sem-chave" });
 
   const ip = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || "anonimo";
