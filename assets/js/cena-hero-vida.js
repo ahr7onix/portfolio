@@ -126,26 +126,47 @@ export function adicionarVida({ raiz, cena, camera, canvas, mouse, pecas }) {
   sombra.scale.set(0.6, 0.6, 1);
 
   // balão de fala
-  const balaoTex = texturaCanvas(256, 110, (g, w, h) => {
+  // o texto muda conforme a conversa com o chat (eventos "robo:falar")
+  const balaoTex = texturaCanvas(640, 220, () => {});
+  const balao = new THREE.Sprite(new THREE.SpriteMaterial({ map: balaoTex.textura, transparent: true, depthWrite: false }));
+  balao.position.set(0.75, 0.85, 0);
+  balao.material.opacity = 0;
+  const balaoTam = { w: 0.9, h: 0.39 };
+
+  function escreverBalao(texto) {
+    const { g, canvas: c, textura } = balaoTex;
+    g.clearRect(0, 0, c.width, c.height);
+    g.font = "700 46px 'Space Grotesk', sans-serif";
+    // quebra em até 2 linhas
+    const palavras = texto.split(" ");
+    const linhas = [""];
+    for (const p of palavras) {
+      const teste = (linhas[linhas.length - 1] + " " + p).trim();
+      if (g.measureText(teste).width > 540 && linhas[linhas.length - 1] && linhas.length < 2) linhas.push(p);
+      else linhas[linhas.length - 1] = teste;
+    }
+    const largura = Math.min(620, Math.max(...linhas.map((l) => g.measureText(l).width)) + 64);
+    const altura = linhas.length * 54 + 34;
+    const x0 = (c.width - largura) / 2;
     g.fillStyle = "#ffffff";
     g.beginPath();
-    g.roundRect(4, 4, w - 8, h - 30, 26);
+    g.roundRect(x0, 4, largura, altura, 30);
     g.fill();
-    g.beginPath();
-    g.moveTo(60, h - 27);
-    g.lineTo(48, h - 4);
-    g.lineTo(90, h - 27);
+    g.beginPath(); // "rabinho" do balão apontando para o robô
+    g.moveTo(x0 + 40, altura);
+    g.lineTo(x0 + 22, altura + 30);
+    g.lineTo(x0 + 82, altura);
     g.fill();
     g.fillStyle = "#1e1b4b";
-    g.font = "700 40px 'Space Grotesk', sans-serif";
     g.textAlign = "center";
     g.textBaseline = "middle";
-    g.fillText("Olá! 👋", w / 2, (h - 26) / 2 + 2);
-  });
-  const balao = new THREE.Sprite(new THREE.SpriteMaterial({ map: balaoTex.textura, transparent: true, depthWrite: false }));
-  balao.scale.set(0.9, 0.39, 1);
-  balao.position.set(0.7, 0.8, 0);
-  balao.material.opacity = 0;
+    linhas.forEach((l, i) => g.fillText(l, c.width / 2, 4 + 17 + 27 + i * 54));
+    textura.needsUpdate = true;
+    // o sprite usa a textura inteira; o balão desenhado ocupa a parte de cima
+    balaoTam.w = 1.25;
+    balaoTam.h = 1.25 * (c.height / c.width);
+  }
+  escreverBalao("Olá! 👋");
 
   corpoRobo.add(cabeca, visor, olhos, antena, bolinha, halo, orelhaE, orelhaD, maoE, maoD, propulsor, chama, sombra);
   robo.add(balao);
@@ -168,7 +189,10 @@ export function adicionarVida({ raiz, cena, camera, canvas, mouse, pecas }) {
     const r = canvas.getBoundingClientRect();
     ponteiro.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     raycaster.setFromCamera(ponteiro, camera);
-    if (raycaster.intersectObject(robo, true).length) cutucar();
+    if (raycaster.intersectObject(corpoRobo, true).length) {
+      cutucar();
+      window.dispatchEvent(new CustomEvent("robo:clicado")); // abre o chat
+    }
   });
   canvas.addEventListener("pointermove", (e) => {
     const r = canvas.getBoundingClientRect();
@@ -179,24 +203,55 @@ export function adicionarVida({ raiz, cena, camera, canvas, mouse, pecas }) {
   function cutucar() {
     estado.aceno = 1.6;
     estado.giro = 1;
-    estado.falar = 2.6;
   }
-  // ele cumprimenta sozinho logo depois de aparecer
-  setTimeout(cutucar, 2600);
+  function falar(texto, duracao = 3.2) {
+    escreverBalao(texto);
+    estado.falar = duracao;
+  }
+
+  // conversa com o chat (assets/js/bot.js)
+  let humor = "normal"; // normal | pensando | ouvindo | feliz
+  let humorAte = 0;
+  let conversou = false;
+  window.addEventListener("robo:falar", (e) => { conversou = true; falar(e.detail.texto); });
+  window.addEventListener("robo:pirueta", cutucar);
+  window.addEventListener("robo:estado", (e) => {
+    humor = e.detail.estado;
+    humorAte = performance.now() + (humor === "feliz" ? 2200 : 60000);
+    if (humor === "feliz") estado.aceno = Math.max(estado.aceno, 0.8);
+  });
+
+  // ele cumprimenta sozinho logo depois de aparecer e, se ninguém conversar, chama de novo
+  setTimeout(() => { cutucar(); falar("Olá! 👋 Eu sou o Bit"); }, 2600);
+  const convites = ["Clica em mim! 💬", "Quer ver os projetos? 👀", "Posso ajudar? 🤖", "Bora conversar? 💜"];
+  let convite = 0;
+  setInterval(() => {
+    if (!conversou && !document.hidden && estado.falar <= 0) falar(convites[convite++ % convites.length], 3);
+  }, 11000);
 
   atualizacoes.push((t, dt) => {
     // flutua
     robo.position.y = 2.55 + Math.sin(t * 1.6) * 0.09;
     robo.position.x = -1.8 + Math.sin(t * 0.7) * 0.05;
 
-    // corpo inclina na direção do mouse
-    corpoRobo.rotation.y = THREE.MathUtils.lerp(corpoRobo.rotation.y, 0.35 + mouse.x * 0.6, 0.08);
-    corpoRobo.rotation.x = THREE.MathUtils.lerp(corpoRobo.rotation.x, mouse.y * 0.25, 0.08);
-    corpoRobo.rotation.z = Math.sin(t * 1.2) * 0.05;
+    if (humor !== "normal" && performance.now() > humorAte) humor = "normal";
 
-    // olhos seguem o mouse
-    alvoOlhar.set(mouse.x * 0.06, -mouse.y * 0.04 + 0.02, 0.33);
+    // para onde ele olha: o mouse, o chat (ouvindo) ou para cima (pensando)
+    let olharX = mouse.x, olharY = mouse.y;
+    if (humor === "ouvindo") { olharX = 1; olharY = 0.8; }
+    if (humor === "pensando") { olharX = 0.6 + Math.sin(t * 3) * 0.3; olharY = -0.9; }
+
+    // corpo inclina na direção do olhar
+    corpoRobo.rotation.y = THREE.MathUtils.lerp(corpoRobo.rotation.y, 0.35 + olharX * 0.6, 0.08);
+    corpoRobo.rotation.x = THREE.MathUtils.lerp(corpoRobo.rotation.x, olharY * 0.25, 0.08);
+    corpoRobo.rotation.z = humor === "pensando" ? Math.sin(t * 2) * 0.15 : Math.sin(t * 1.2) * 0.05;
+
+    // olhos acompanham
+    alvoOlhar.set(olharX * 0.06, -olharY * 0.04 + 0.02, 0.33);
     olhos.position.lerp(alvoOlhar, 0.15);
+
+    // feliz: dá pulinhos
+    if (humor === "feliz") robo.position.y += Math.abs(Math.sin(t * 7)) * 0.08;
 
     // piscar
     estado.piscar -= dt;
@@ -205,7 +260,8 @@ export function adicionarVida({ raiz, cena, camera, canvas, mouse, pecas }) {
       estado.piscar = 2.5 + Math.random() * 3;
     }
     estado.piscando = Math.max(0, estado.piscando - dt);
-    const fechado = estado.piscando > 0 ? 0.12 : 1;
+    // olhos "sorrindo" (apertados) quando está feliz
+    const fechado = estado.piscando > 0 ? 0.12 : humor === "feliz" ? 0.45 : 1;
     olhos.scale.y = THREE.MathUtils.lerp(olhos.scale.y, fechado, 0.5);
 
     // pirueta
@@ -230,13 +286,17 @@ export function adicionarVida({ raiz, cena, camera, canvas, mouse, pecas }) {
     estado.falar = Math.max(0, estado.falar - dt);
     const alvoBalao = estado.falar > 0 ? 1 : 0;
     balao.material.opacity += (alvoBalao - balao.material.opacity) * 0.15;
-    balao.scale.set(0.9 * (0.6 + balao.material.opacity * 0.4), 0.39 * (0.6 + balao.material.opacity * 0.4), 1);
+    const s = 0.6 + balao.material.opacity * 0.4;
+    balao.scale.set(balaoTam.w * s, balaoTam.h * s, 1);
+    balao.visible = balao.material.opacity > 0.01;
 
-    // propulsor e antena
+    // propulsor e antena (a antena pisca rápido quando está pensando)
     chama.scale.y = 0.8 + Math.sin(t * 30) * 0.15 + Math.random() * 0.1;
     chama.material.opacity = 0.25 + Math.random() * 0.12;
-    halo.material.opacity = 0.6 + Math.sin(t * 4) * 0.4;
-    olhoMat.color.setHSL(0.52 + Math.sin(t * 0.5) * 0.04, 1, 0.6);
+    halo.material.opacity = humor === "pensando" ? (Math.sin(t * 20) > 0 ? 1 : 0.2) : 0.6 + Math.sin(t * 4) * 0.4;
+    bolinha.material.color.set(humor === "pensando" ? "#fbbf24" : humor === "ouvindo" ? "#22d3ee" : "#a855f7");
+    halo.material.color.copy(bolinha.material.color);
+    olhoMat.color.setHSL(humor === "feliz" ? 0.85 : 0.52 + Math.sin(t * 0.5) * 0.04, 1, 0.6);
   });
 
   // ======================================================
