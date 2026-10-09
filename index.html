@@ -8,120 +8,206 @@
   <meta property="og:title" content="Isac Buzelli | Desenvolvedor Full Stack">
   <meta property="og:description" content="Sistemas web, aplicativos, automações e integrações com IA.">
   <meta property="og:type" content="website">
-  <meta name="theme-color" content="#0b1020">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%230b1020'/><text x='50%25' y='56%25' text-anchor='middle' dominant-baseline='middle' font-family='Arial' font-weight='700' font-size='28' fill='%2322d3ee'>IB</text></svg>">
+  <meta property="og:url" content="https://isacbuzelli.vercel.app/">
+  <meta name="theme-color" content="#050816">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%2322d3ee'/><stop offset='1' stop-color='%23a855f7'/></linearGradient></defs><rect width='64' height='64' rx='16' fill='%23050816'/><path d='M20 16v32M32 16h8a8 8 0 0 1 0 16h-8m0 0h9a8 8 0 0 1 0 16h-9V16' fill='none' stroke='url(%23g)' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="assets/css/style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/+esm",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+      }
+    }
+  </script>
+  <script>document.documentElement.classList.add("js");</script>
 </head>
 <body>
   <a class="skip" href="#projetos">Pular para os projetos</a>
 
+  <canvas id="cena-estrelas" class="cena-estrelas" aria-hidden="true"></canvas>
+  <div class="brilho-fundo" aria-hidden="true"></div>
+
   <header class="topo">
     <nav class="nav container" aria-label="Principal">
-      <a class="marca" href="#inicio" aria-label="Início">
-        <span>Isac Buzelli</span>
-      </a>
-      <div class="nav-links">
-        <a href="#projetos">Projetos</a>
-        <a href="#servicos">Serviços</a>
-        <a href="#sobre">Sobre</a>
-        <a class="btn btn-sm" href="https://wa.me/5517992514495?text=Ol%C3%A1%20Isac%2C%20vi%20seu%20portf%C3%B3lio%20e%20quero%20conversar%20sobre%20um%20projeto." target="_blank" rel="noopener">WhatsApp</a>
-      </div>
+      <a class="marca" href="#inicio">isac<span>.</span>dev</a>
+      <button class="menu-botao" aria-expanded="false" aria-controls="menu" aria-label="Abrir menu">
+        <span></span><span></span>
+      </button>
     </nav>
   </header>
+  <div id="menu" class="menu">
+    <a href="#projetos" data-secao="projetos">Projetos</a>
+    <a href="#servicos" data-secao="servicos">Serviços</a>
+    <a href="#tecnologias" data-secao="tecnologias">Tecnologias</a>
+    <a href="#sobre" data-secao="sobre">Sobre</a>
+    <a href="#contato" data-secao="contato">Contato</a>
+    <a class="btn btn-brilho btn-sm" href="https://wa.me/5517992514495?text=Ol%C3%A1%20Isac%2C%20vi%20seu%20portf%C3%B3lio%20e%20quero%20conversar%20sobre%20um%20projeto." target="_blank" rel="noopener">WhatsApp</a>
+  </div>
 
   <main id="inicio">
+    <!-- ===== Topo com a estação de trabalho em 3D ===== -->
     <section class="hero container">
-      <p class="eyebrow"><span class="ponto"></span> Disponível para novos projetos</p>
-      <h1>Desenvolvo sistemas que resolvem<br class="quebra"> problemas reais de negócio.</h1>
-      <p class="hero-texto">
-        Sou o Isac, desenvolvedor full stack. Construo aplicações web, aplicativos,
-        automações e integrações com inteligência artificial, do banco de dados à interface.
-      </p>
-      <div class="hero-acoes">
-        <a class="btn" href="#projetos">Ver projetos</a>
-        <a class="btn btn-ghost" href="https://wa.me/5517992514495?text=Ol%C3%A1%20Isac%2C%20vi%20seu%20portf%C3%B3lio%20e%20quero%20conversar%20sobre%20um%20projeto." target="_blank" rel="noopener">Falar no WhatsApp</a>
+      <div class="hero-texto">
+        <p class="saudacao"><span class="ponto"></span> Disponível para novos projetos</p>
+        <h1>Olá, eu sou <span class="degrade">Isac Buzelli</span></h1>
+        <p class="hero-papel">
+          <span class="sr-only">Desenvolvedor Full Stack.</span>
+          <span aria-hidden="true">&gt; <span id="digitando">Desenvolvedor Full Stack</span><span class="cursor">|</span></span>
+        </p>
+        <p class="hero-desc">
+          Construo sistemas que resolvem problemas reais de negócio: aplicações web, aplicativos,
+          automações e integrações com inteligência artificial, do banco de dados à interface.
+        </p>
+        <div class="hero-acoes">
+          <a class="btn btn-brilho" href="#projetos">Ver projetos</a>
+          <a class="btn btn-vidro" href="https://wa.me/5517992514495?text=Ol%C3%A1%20Isac%2C%20vi%20seu%20portf%C3%B3lio%20e%20quero%20conversar%20sobre%20um%20projeto." target="_blank" rel="noopener">Falar no WhatsApp</a>
+          <a class="btn btn-vidro" href="https://www.linkedin.com/in/isac-buzelli-dos-santos-b84499392/" target="_blank" rel="noopener">LinkedIn</a>
+        </div>
       </div>
-      <ul class="hero-stack" aria-label="Principais tecnologias">
-        <li>TypeScript</li><li>Node.js</li><li>NestJS</li><li>React</li><li>React Native</li><li>PostgreSQL</li><li>Python</li><li>Docker</li>
-      </ul>
+
+      <div class="hero-3d">
+        <canvas id="cena-hero" aria-label="Estação de trabalho em 3D mostrando os projetos na tela do monitor" role="img"></canvas>
+        <div class="hero-fallback" aria-hidden="true"></div>
+        <p class="dica" aria-hidden="true">arraste para girar</p>
+      </div>
+
+      <a class="rolar" href="#projetos" aria-label="Rolar até os projetos"><span></span></a>
     </section>
 
+    <!-- ===== Projetos ===== -->
     <section id="projetos" class="secao container">
-      <div class="secao-cab">
+      <header class="secao-cab revelar">
         <div>
-          <p class="eyebrow">Portfólio</p>
-          <h2>Projetos</h2>
+          <p class="sobretitulo">Meu trabalho</p>
+          <h2>Projetos<span class="degrade">.</span></h2>
         </div>
-        <div class="filtros" role="tablist" aria-label="Filtrar projetos">
-          <button class="filtro ativo" data-filtro="todos" role="tab" aria-selected="true">Todos</button>
-          <button class="filtro" data-filtro="fullstack" role="tab" aria-selected="false">Sistemas</button>
-          <button class="filtro" data-filtro="web" role="tab" aria-selected="false">Sites</button>
-          <button class="filtro" data-filtro="automacao" role="tab" aria-selected="false">Automação</button>
-          <button class="filtro" data-filtro="games" role="tab" aria-selected="false">Games</button>
+        <div class="filtros" role="group" aria-label="Filtrar projetos">
+          <button class="filtro ativo" data-filtro="todos" aria-pressed="true">Todos</button>
+          <button class="filtro" data-filtro="fullstack" aria-pressed="false">Sistemas</button>
+          <button class="filtro" data-filtro="web" aria-pressed="false">Sites</button>
+          <button class="filtro" data-filtro="automacao" aria-pressed="false">Automação</button>
+          <button class="filtro" data-filtro="games" aria-pressed="false">Games</button>
         </div>
-      </div>
+      </header>
       <div id="grade" class="grade" aria-live="polite"></div>
       <noscript>
         <p class="aviso">Ative o JavaScript para ver os projetos, ou acesse <a href="https://github.com/ahr7onix">github.com/ahr7onix</a>.</p>
       </noscript>
     </section>
 
+    <!-- ===== Serviços ===== -->
     <section id="servicos" class="secao container">
-      <p class="eyebrow">O que eu faço</p>
-      <h2>Serviços</h2>
+      <header class="secao-cab revelar">
+        <div>
+          <p class="sobretitulo">O que eu faço</p>
+          <h2>Serviços<span class="degrade">.</span></h2>
+        </div>
+      </header>
       <div class="servicos">
-        <article class="servico">
+        <article class="servico revelar">
+          <div class="servico-icone" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4M7 9l2 2-2 2M12 13h4"/></svg>
+          </div>
           <h3>Sistemas web sob medida</h3>
           <p>Painéis administrativos, plataformas SaaS e APIs com autenticação, perfis de acesso e banco de dados.</p>
         </article>
-        <article class="servico">
+        <article class="servico revelar">
+          <div class="servico-icone" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>
+          </div>
           <h3>Aplicativos mobile</h3>
           <p>Apps Android e iOS com React Native, integrados à mesma API do sistema web.</p>
         </article>
-        <article class="servico">
+        <article class="servico revelar">
+          <div class="servico-icone" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+          </div>
           <h3>Sites e landing pages</h3>
           <p>Sites institucionais e páginas de venda rápidos, responsivos e com formulário de contato funcionando.</p>
         </article>
-        <article class="servico">
+        <article class="servico revelar">
+          <div class="servico-icone" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><rect x="5" y="7" width="14" height="12" rx="3"/><path d="M12 7V3M9 12h.01M15 12h.01M9 16h6M2 12h3M19 12h3"/></svg>
+          </div>
           <h3>Automação e IA</h3>
           <p>Bots, integrações entre plataformas, filas de processamento e uso de IA para tarefas como tradução.</p>
         </article>
       </div>
     </section>
 
-    <section id="sobre" class="secao container sobre">
-      <div>
-        <p class="eyebrow">Sobre</p>
-        <h2>Código com foco no resultado</h2>
+    <!-- ===== Tecnologias ===== -->
+    <section id="tecnologias" class="secao container">
+      <header class="secao-cab revelar">
+        <div>
+          <p class="sobretitulo">Ferramentas</p>
+          <h2>Tecnologias<span class="degrade">.</span></h2>
+        </div>
+        <p class="secao-nota">Passe o mouse nas esferas. São as ferramentas que uso nos projetos deste portfólio e em projetos próprios.</p>
+      </header>
+      <div class="tec-3d revelar">
+        <canvas id="cena-tecnologias" aria-hidden="true"></canvas>
       </div>
-      <div class="sobre-texto">
-        <p>
-          Estudo Tecnologia em Desenvolvimento de Sistemas no Centro Universitário Católico Salesiano Auxilium,
-          em Araçatuba (SP). Meu trabalho de conclusão, o NutriCare, é um sistema completo com API, painel web
-          e aplicativo mobile, desenvolvido em equipe para uso real com pacientes.
-        </p>
-        <p>
-          Além de sistemas para empresas, desenvolvo projetos próprios de automação, bots e jogos. Escrevo
-          testes automatizados e documentação para que o projeto continue funcionando depois da entrega.
-        </p>
+      <ul class="tec-lista revelar" aria-label="Tecnologias">
+        <li>React</li><li>Next.js</li><li>React Native</li><li>Expo</li><li>Three.js</li><li>Tailwind CSS</li>
+        <li>Node.js</li><li>NestJS</li><li>TypeScript</li><li>PostgreSQL</li><li>Prisma</li><li>Socket.IO</li>
+        <li>Python</li><li>OCR</li><li>Claude API</li><li>discord.js</li><li>Luau (Roblox)</li>
+        <li>Docker</li><li>GitHub Actions</li><li>Vercel</li><li>Render</li><li>Git</li>
+      </ul>
+    </section>
+
+    <!-- ===== Sobre ===== -->
+    <section id="sobre" class="secao container">
+      <div class="sobre">
+        <div class="revelar">
+          <p class="sobretitulo">Quem sou</p>
+          <h2>Sobre mim<span class="degrade">.</span></h2>
+          <p class="sobre-texto">
+            Desenvolvedor full stack de Araçatuba (SP). Gosto de transformar problemas de negócio em sistemas
+            que funcionam no dia a dia, e escrevo testes automatizados e documentação para que o projeto
+            continue funcionando depois da entrega.
+          </p>
+        </div>
+        <ol class="linha-tempo">
+          <li class="revelar">
+            <span class="marco" aria-hidden="true"></span>
+            <h3>Tecnologia em Desenvolvimento de Sistemas</h3>
+            <p>Centro Universitário Católico Salesiano Auxilium, Araçatuba (SP).</p>
+          </li>
+          <li class="revelar">
+            <span class="marco" aria-hidden="true"></span>
+            <h3>TCC: NutriCare</h3>
+            <p>Sistema completo com API, painel web e aplicativo mobile, desenvolvido em equipe com o curso de Nutrição para acompanhar pacientes com diabetes.</p>
+          </li>
+          <li class="revelar">
+            <span class="marco" aria-hidden="true"></span>
+            <h3>Projetos próprios</h3>
+            <p>Automações, bots, jogos e ferramentas com IA, sempre com testes automatizados.</p>
+          </li>
+        </ol>
       </div>
     </section>
 
+    <!-- ===== Contato com o planeta 3D ===== -->
     <section id="contato" class="secao container">
       <div class="contato">
-        <div>
-          <p class="eyebrow">Contato</p>
-          <h2>Vamos conversar sobre o seu projeto?</h2>
+        <div class="contato-cartao revelar">
+          <p class="sobretitulo">Vamos conversar</p>
+          <h2>Contato<span class="degrade">.</span></h2>
           <p class="contato-texto">Conte o que você precisa e eu respondo com uma proposta.</p>
+          <div class="contato-links">
+            <a class="btn btn-brilho" href="https://wa.me/5517992514495?text=Ol%C3%A1%20Isac%2C%20vi%20seu%20portf%C3%B3lio%20e%20quero%20conversar%20sobre%20um%20projeto." target="_blank" rel="noopener">WhatsApp (17) 99251-4495</a>
+            <a class="btn btn-vidro" href="mailto:isacbuzelli@gmail.com">isacbuzelli@gmail.com</a>
+            <a class="btn btn-vidro" href="https://www.linkedin.com/in/isac-buzelli-dos-santos-b84499392/" target="_blank" rel="noopener">LinkedIn</a>
+            <a class="btn btn-vidro" href="https://github.com/ahr7onix" target="_blank" rel="noopener">GitHub</a>
+          </div>
         </div>
-        <div class="contato-links">
-          <a class="btn" href="https://wa.me/5517992514495?text=Ol%C3%A1%20Isac%2C%20vi%20seu%20portf%C3%B3lio%20e%20quero%20conversar%20sobre%20um%20projeto." target="_blank" rel="noopener">WhatsApp (17) 99251-4495</a>
-          <a class="btn btn-ghost" href="mailto:isacbuzelli@gmail.com">isacbuzelli@gmail.com</a>
-          <a class="btn btn-ghost" href="https://www.linkedin.com/in/isac-buzelli-b84499392/" target="_blank" rel="noopener">LinkedIn</a>
-          <a class="btn btn-ghost" href="https://github.com/ahr7onix" target="_blank" rel="noopener">GitHub</a>
+        <div class="planeta-3d revelar">
+          <canvas id="cena-planeta" aria-hidden="true"></canvas>
         </div>
       </div>
     </section>
@@ -137,5 +223,6 @@
 
   <script src="assets/js/projetos.js"></script>
   <script src="assets/js/main.js"></script>
+  <script type="module" src="assets/js/cenas.js"></script>
 </body>
 </html>
