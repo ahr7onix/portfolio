@@ -255,27 +255,104 @@
     });
   }
 
-  function enviar(texto) {
+  // ---------------- IA (Gemini via /api/bit) ----------------
+  // No site da Vercel usa o mesmo domínio; no GitHub Pages chama a Vercel.
+  const API = location.hostname === "isacbuzelli.vercel.app" ? "/api/bit" : "https://isacbuzelli.vercel.app/api/bit";
+  const historico = []; // { quem: "eu" | "bit", texto }
+  let iaPausadaAte = 0;  // depois de uma falha, usa as regras por um tempo
+  const statusTexto = document.querySelector("#bot-status span:last-child");
+
+  const NOMES_SECAO = { projetos: "Projetos", servicos: "Serviços", tecnologias: "Tecnologias", sobre: "Sobre", contato: "Contato" };
+
+  // texto do modelo -> HTML seguro (só negrito e quebras de linha)
+  const formatar = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\n/g, "<br>");
+  const semTags = (html) => { const d = document.createElement("div"); d.innerHTML = html; return d.textContent; };
+
+  function contatoAcoes() {
+    return [
+      { rotulo: "WhatsApp (17) 99251-4495", link: whatsLink("Olá Isac, vi seu portfólio e quero conversar sobre um projeto."), destaque: true },
+      { rotulo: EMAIL, link: `mailto:${EMAIL}` },
+      { rotulo: "LinkedIn", link: LINKEDIN },
+      { rotulo: "GitHub", link: GITHUB },
+    ];
+  }
+
+  async function perguntarIA() {
+    if (Date.now() < iaPausadaAte) return null;
+    const controle = new AbortController();
+    const relogio = setTimeout(() => controle.abort(), 20000);
+    try {
+      const r = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mensagens: historico.slice(-12) }),
+        signal: controle.signal,
+      });
+      const dados = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        // sem chave configurada: não adianta tentar de novo nesta visita
+        iaPausadaAte = Date.now() + (dados.erro === "sem-chave" ? 864e5 : r.status === 429 ? 30e3 : 120e3);
+        return null;
+      }
+      if (statusTexto) statusTexto.textContent = "assistente do Isac com IA · online";
+      return dados;
+    } catch {
+      iaPausadaAte = Date.now() + 120e3;
+      return null;
+    } finally {
+      clearTimeout(relogio);
+    }
+  }
+
+  function converterIA(d) {
+    let texto = formatar(d.resposta);
+    const acoes = [];
+    for (const a of d.acoes || []) {
+      if (a.tipo === "projeto") {
+        const p = projetos.find((x) => x.id === a.alvo);
+        if (!p) continue;
+        acoes.push({ rotulo: `Ver ${p.nome}`, projeto: p.id, destaque: !acoes.length });
+        if (p.demo) acoes.push({ rotulo: `${p.nome} online`, link: p.demo });
+      } else if (a.tipo === "secao") {
+        acoes.push({ rotulo: `Ir para ${NOMES_SECAO[a.alvo] || a.alvo}`, rolar: a.alvo });
+      } else if (a.tipo === "whatsapp") {
+        texto += `<blockquote>${esc(a.alvo)}</blockquote>`;
+        acoes.unshift({ rotulo: "Enviar no WhatsApp", link: whatsLink(a.alvo), destaque: true });
+      } else if (a.tipo === "contato") {
+        acoes.push(...contatoAcoes());
+      }
+    }
+    return { texto, acoes: acoes.slice(0, 5), sugestoes: d.sugestoes, balao: d.balao, estado: d.humor };
+  }
+
+  async function enviar(texto) {
     texto = texto.trim();
     if (!texto || ocupado) return;
     adicionar("eu", esc(texto));
+    historico.push({ quem: "eu", texto });
     campo.value = "";
     mostrarSugestoes([]);
     ocupado = true;
     estadoRobo("pensando");
 
     const digitando = adicionar("bit", '<span class="digitando"><i></i><i></i><i></i></span>');
-    const r = responder(texto);
-    const atraso = reduzir ? 150 : Math.min(450 + r.texto.length * 4, 1500);
-    setTimeout(() => {
-      digitando.remove();
-      adicionar("bit", r.texto, r);
-      mostrarSugestoes(r.sugestoes);
-      if (r.balao) falarNoRobo(r.balao);
-      estadoRobo(r.estado || "normal");
-      if (r.pirueta) robo("robo:pirueta");
-      ocupado = false;
-    }, atraso);
+    const inicio = performance.now();
+
+    const ia = await perguntarIA();
+    const r = ia ? converterIA(ia) : responder(texto);
+
+    // um mínimo de "digitando" deixa a conversa mais natural
+    const minimo = reduzir ? 150 : ia ? 500 : Math.min(450 + r.texto.length * 4, 1500);
+    await new Promise((ok) => setTimeout(ok, Math.max(0, minimo - (performance.now() - inicio))));
+
+    digitando.remove();
+    adicionar("bit", r.texto, r);
+    historico.push({ quem: "bit", texto: semTags(r.texto).slice(0, 500) });
+    mostrarSugestoes(r.sugestoes);
+    if (r.balao) falarNoRobo(r.balao);
+    estadoRobo(r.estado || "normal");
+    if (r.pirueta) robo("robo:pirueta");
+    ocupado = false;
   }
 
   let iniciou = false;
