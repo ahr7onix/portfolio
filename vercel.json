@@ -2,7 +2,7 @@
   "functions": {
     "api/bit.mjs": {
       "includeFiles": "assets/js/projetos.js",
-      "maxDuration": 30
+      "maxDuration": 40
     }
   }
 }

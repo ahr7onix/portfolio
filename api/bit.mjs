@@ -138,9 +138,11 @@ function limpar(dados) {
   };
 }
 
-async function perguntarGemini(modelo, mensagens, chave, pensarPouco = true) {
+async function perguntarGemini(modelo, mensagens, chave, pensarPouco, cancelar) {
   const controle = new AbortController();
-  const relogio = setTimeout(() => controle.abort(), 10_000);
+  const relogio = setTimeout(() => controle.abort(), 28_000);
+  const aoCancelar = () => controle.abort();
+  cancelar.addEventListener("abort", aoCancelar);
   try {
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelo)}:generateContent`, {
       method: "POST",
@@ -167,7 +169,17 @@ async function perguntarGemini(modelo, mensagens, chave, pensarPouco = true) {
     return { erro: e.name === "AbortError" ? 504 : 502, detalhe: e.message };
   } finally {
     clearTimeout(relogio);
+    cancelar.removeEventListener("abort", aoCancelar);
   }
+}
+
+// Um modelo: tenta com raciocínio mínimo; se ele não aceitar o ajuste, tenta sem.
+async function tentarModelo(modelo, mensagens, chave, cancelar) {
+  let r = await perguntarGemini(modelo, mensagens, chave, true, cancelar);
+  if (r.erro === 400 && /thinking/i.test(r.detalhe || "")) r = await perguntarGemini(modelo, mensagens, chave, false, cancelar);
+  if (r.dados) return { ...r, modelo };
+  if (!cancelar.aborted) console.warn(`Gemini ${modelo} falhou (${r.erro}): ${r.detalhe || ""}`);
+  throw r;
 }
 
 export default async function handler(req, res) {
@@ -202,18 +214,15 @@ export default async function handler(req, res) {
     return res.status(400).json({ erro: "mensagem vazia" });
   }
 
-  let ultimoErro = null;
-  const inicio = Date.now();
-  for (const modelo of MODELOS) {
-    if (Date.now() - inicio > 19_000) break; // não estoura o tempo máximo da função
-    let r = await perguntarGemini(modelo, mensagens, chave);
-    // modelo que não aceita o ajuste de raciocínio: tenta de novo sem ele
-    if (r.erro === 400 && /thinking/i.test(r.detalhe || "")) r = await perguntarGemini(modelo, mensagens, chave, false);
-    if (r.dados) return res.status(200).json({ ...limpar(r.dados), modelo });
-    ultimoErro = r;
-    console.warn(`Gemini ${modelo} falhou (${r.erro}): ${r.detalhe || ""}`);
-    // 404/400 = modelo indisponível nesta chave -> tenta o próximo; cota/erro de servidor também
-    if (r.erro === 401 || /api key/i.test(r.detalhe || "")) break; // chave inválida: não adianta trocar de modelo
+  // Pergunta a todos os modelos ao mesmo tempo e fica com o primeiro que responder
+  // (no plano grátis um modelo às vezes demora ou está sobrecarregado).
+  const cancelar = new AbortController();
+  try {
+    const r = await Promise.any(MODELOS.map((m) => tentarModelo(m, mensagens, chave, cancelar.signal)));
+    cancelar.abort(); // dispensa os outros modelos
+    return res.status(200).json({ ...limpar(r.dados), modelo: r.modelo });
+  } catch (e) {
+    const erros = e.errors || [];
+    return res.status(502).json({ erro: "ia-indisponivel", status: erros.map((x) => x.erro) });
   }
-  return res.status(502).json({ erro: "ia-indisponivel", status: ultimoErro?.erro });
 }

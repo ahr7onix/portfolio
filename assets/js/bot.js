@@ -280,7 +280,7 @@
   async function perguntarIA() {
     if (Date.now() < iaPausadaAte) return null;
     const controle = new AbortController();
-    const relogio = setTimeout(() => controle.abort(), 28000);
+    const relogio = setTimeout(() => controle.abort(), 35000);
     try {
       const r = await fetch(API, {
         method: "POST",
